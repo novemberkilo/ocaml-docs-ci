@@ -1,47 +1,46 @@
 version: "3.8"
 services:
 
-  scheduler:
-    image: ocurrent/ocluster-scheduler:live
-    command:
-      - --secrets-dir=/capnp-secrets
-      - --capnp-secret-key-file=/capnp-secrets/key.pem
-      - --capnp-listen-address=tcp:0.0.0.0:9000
-      - --capnp-public-address=tcp:scheduler:9000
-      - --pools=linux-x86_64
-      - --state-dir=/var/lib/ocluster-scheduler
-      - --default-clients=ocaml-docs-ci
-    init: true
-    ports:
-      - "9000:9000"
-    volumes:
-      - 'scheduler-data:/var/lib/ocluster-scheduler'
-      - 'capnp-secrets:/capnp-secrets'
+  # scheduler:
+  #   image: ocurrent/ocluster-scheduler:live
+  #   command:
+  #     - --secrets-dir=/capnp-secrets
+  #     - --capnp-secret-key-file=/capnp-secrets/key.pem
+  #     - --capnp-listen-address=tcp:0.0.0.0:9000
+  #     - --capnp-public-address=tcp:scheduler:9000
+  #     - --pools=linux-x86_64
+  #     - --state-dir=/var/lib/ocluster-scheduler
+  #     - --default-clients=ocaml-docs-ci
+  #   init: true
+  #   ports:
+  #     - "9000:9000"
+  #   volumes:
+  #     - 'scheduler-data:/var/lib/ocluster-scheduler'
+  #     - 'capnp-secrets:/capnp-secrets'
 
-  worker:
-    # image: ocurrent/ocluster-worker:live
-    build:
-      dockerfile: docker/worker/Dockerfile
-      context: .
-    command:
-      - --connect=/capnp-secrets/pool-linux-x86_64.cap
-      - --name=ocluster-worker
-      - --allow-push=ocurrentbuilder/staging,ocurrent/opam-staging
-      - --capacity=1
-      - --state-dir=/var/lib/ocluster
-      - --store=rsync:/var/cache/obuilder
-      - --rsync-mode=hardlink
-      - --obuilder-healthcheck=0
-      - --verbose
-    init: true
-    privileged: true            # required for the Docker in Docker container to work
-    restart: on-failure         # (wait for the scheduler to write the pool cap)
-    volumes:
-      - 'worker-data:/var/lib/ocluster'
-      - '/var/run/docker.sock:/var/run/docker.sock'
-      - 'capnp-secrets:/capnp-secrets:ro'
-    environment:
-      - DOCKER_BUILDKIT=1
+  # worker:
+  #   build:
+  #     dockerfile: docker/worker/Dockerfile
+  #     context: .
+  #   command:
+  #     - --connect=/capnp-secrets/pool-linux-x86_64.cap
+  #     - --name=ocluster-worker
+  #     - --allow-push=ocurrentbuilder/staging,ocurrent/opam-staging
+  #     - --capacity=1
+  #     - --state-dir=/var/lib/ocluster
+  #     - --store=rsync:/var/cache/obuilder
+  #     - --rsync-mode=hardlink
+  #     - --obuilder-healthcheck=0
+  #     - --verbose
+  #   init: true
+  #   privileged: true            # required for the Docker in Docker container to work
+  #   restart: on-failure         # (wait for the scheduler to write the pool cap)
+  #   volumes:
+  #     - 'worker-data:/var/lib/ocluster'
+  #     - '/var/run/docker.sock:/var/run/docker.sock'
+  #     - 'capnp-secrets:/capnp-secrets:ro'
+  #   environment:
+  #     - DOCKER_BUILDKIT=1
 
   init:
     build:
@@ -98,11 +97,11 @@ services:
       context: .
     depends_on:
       - "storage-server"
-      - "scheduler"
-      - "worker"
+      # - "scheduler"
+      # - "worker"
     command:
       - --confirm=above-average
-      - --ocluster-submission=/capnp-secrets/submit-ocaml-docs-ci.cap
+      - --ocluster-submission=/run/secrets/cluster_cap_file
       - --ssh-host=172.17.0.1 # ocluster jobs are spawned by the host's docker, so they don't have
                               # access to this docker-compose's network. therefore we have to get
                               # to the storage server through the host network.
@@ -125,6 +124,8 @@ services:
     environment:
       - OCAMLRUNPARAM=b
       - CI_PROFILE=docker
+    secrets:
+      - cluster_cap_file
 
 volumes:
   ocaml-docs-ci-data:
@@ -133,3 +134,7 @@ volumes:
   capnp-secrets:
   docs-data:
   ssh-credentials:
+
+secrets:
+  cluster_cap_file:
+    file: ./capnp-secrets/submit-ocaml-docs-ci.cap
