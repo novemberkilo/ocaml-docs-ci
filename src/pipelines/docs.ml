@@ -258,11 +258,14 @@ let v ~config ~opam ~monitor ~migrations () =
     let+ voodoo in
     Epoch.v config voodoo
   in
-  (* 0) Housekeeping - run migrations, record a new pipeline run *)
-  let* _ = migrations in
-  Log.info (fun f -> f "0) Migrations");
 
-  let pipeline_id = Record.v config voodoo in
+  (* 0) Housekeeping - run migrations *)
+  let migrations =
+    match migrations with
+    | Some path -> Index.migrate path
+    | None -> Current.return ()
+  in
+  Current.with_context migrations @@ fun () ->
   (* 1) Track the list of packages in the opam repository *)
   let tracked =
     Track.v
