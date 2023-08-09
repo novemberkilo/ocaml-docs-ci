@@ -265,7 +265,19 @@ let v ~config ~opam ~monitor ~migrations () =
     | Some path -> Index.migrate path
     | None -> Current.return ()
   in
-  Current.with_context migrations @@ fun () ->
+  let voodoo =
+    let+ _ = migrations and+ voodoo in
+    voodoo
+  in
+  let generation =
+    let+ voodoo in
+    Epoch.v config voodoo
+  in
+  (* 0) Housekeeping - run migrations, record a new pipeline run *)
+  let* _ = migrations in
+  Log.info (fun f -> f "0) Migrations");
+
+  let pipeline_id = Record.v config voodoo in
   (* 1) Track the list of packages in the opam repository *)
   let tracked =
     Track.v

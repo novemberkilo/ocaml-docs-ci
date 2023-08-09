@@ -78,14 +78,12 @@ let migrate path =
   |> let> date = Current.return (Unix.time ()) in
      Migration_cache.get path date
 
-type status = [ `Failed | `Running | `Passed ] [@@deriving show]
+let state_to_int = function Monitor.Failed -> 0 | Running -> 1 | Done -> 2
 
-let status_to_int = function `Failed -> 0 | `Running -> 1 | `Passed -> 2
-
-let int_to_status = function
-  | 0 -> Ok `Failed
-  | 1 -> Ok `Running
-  | 2 -> Ok `Passed
+let int_to_state = function
+  | 0 -> Ok Monitor.Failed
+  | 1 -> Ok Running
+  | 2 -> Ok Done
   | _ -> Error "Unrecognised status: %d"
 
 type t = { record_package : Sqlite3.stmt; record_pipeline : Sqlite3.stmt }
