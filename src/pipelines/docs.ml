@@ -258,21 +258,6 @@ let v ~config ~opam ~monitor ~migrations () =
     let+ voodoo in
     Epoch.v config voodoo
   in
-
-  (* 0) Housekeeping - run migrations *)
-  let migrations =
-    match migrations with
-    | Some path -> Index.migrate path
-    | None -> Current.return ()
-  in
-  let voodoo =
-    let+ _ = migrations and+ voodoo in
-    voodoo
-  in
-  let generation =
-    let+ voodoo in
-    Epoch.v config voodoo
-  in
   (* 0) Housekeeping - run migrations, record a new pipeline run *)
   let* _ = migrations in
   Log.info (fun f -> f "0) Migrations");
